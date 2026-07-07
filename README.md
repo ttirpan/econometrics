@@ -1,0 +1,60 @@
+# Ekonometrik / Ekonomik Modelleme Notebook'u
+
+Konfigürasyon odaklı, yeniden kullanılabilir bir ekonometrik modelleme çatısı.
+Kodun büyük kısmına dokunmadan, yalnızca en üstteki **`CONFIG`** bloğunu
+değiştirerek farklı veri setleri ve değişkenler üzerinde çok sayıda ekonometrik
+modeli kurabilir, test edebilir, karşılaştırabilir, en iyi modeli seçebilir,
+forecast üretebilir ve tüm çıktıları düzenli bir Excel dosyasına yazabilirsiniz.
+
+Değişken isimleri **hard-code edilmemiştir**; tamamı `CONFIG` üzerinden yönetilir.
+Aynı notebook'u kredi faizi, taşıt fiyatı, kur, politika faizi, portföy büyüklüğü,
+fon getirisi veya başka herhangi bir ekonomik zaman serisi için kullanabilirsiniz.
+
+## Desteklenen modeller
+
+OLS · ADL · Distributed Lag · ARDL · ECM (Engle-Granger) · VAR · VECM (Johansen) ·
+SARIMAX · Ridge · Lasso · ElasticNet
+
+## Kurulum
+
+```bash
+pip install -r requirements.txt
+```
+
+Opsiyonel paketler (`arch`, `pmdarima`, `linearmodels`) yoksa notebook çökmez;
+ilgili gelişmiş özellikler devre dışı kalır ve açık bir uyarı verilir.
+
+## Kullanım
+
+1. `ekonometrik_modelleme.ipynb` dosyasını açın.
+2. En üstteki **`CONFIG`** bloğunu kendi verinize göre düzenleyin:
+   - `input_file`, `sheet_name`, `date_col`, `target_col`
+   - `frequency`, `sample_start/end`, `forecast_start/end`
+   - `target_transform` ve `exog_transforms` (level / log / diff / logdiff / pct_change)
+   - `models_to_run` ve her model için `model_specs`
+   - `forecast_scenarios` (constant / growth / path / linear / shock)
+   - `test_size`, `selection_metric`, `expected_signs`, `cov_type`
+3. Notebook'u **baştan sona** çalıştırın (Kernel → Restart & Run All).
+
+> `input_file` bulunamazsa notebook otomatik olarak sentetik bir örnek veri seti
+> (`y`, `usdtry`, `policy_rate`) üretir; böylece "tak-çalıştır" mantığında hemen
+> çalışır. Kendi verinizi kullanmak için `CONFIG["input_file"]` alanını
+> gerçek Excel dosyanızla değiştirmeniz yeterlidir.
+
+## Çıktılar
+
+- **`model_outputs.xlsx`** — 11 sayfalık düzenli Excel raporu:
+  `00_README`, `01_RAW_DATA`, `02_TRANSFORMED_DATA`, `03_MODEL_COMPARISON`,
+  `04_BEST_MODEL_SUMMARY`, `05_COEFFICIENTS_ALL`, `06_DIAGNOSTICS_ALL`,
+  `07_VIF_ALL`, `08_FORECASTS`, `09_SCENARIOS`, `10_ERRORS_WARNINGS`.
+- **`plots/`** — hedef seri, gerçek vs fitted, residual, histogram, actual vs
+  forecast ve model karşılaştırma grafikleri (PNG).
+- Notebook içinde **otomatik Türkçe özet yorum** ve tanı testi yorumları.
+
+## Sağlamlık
+
+- Hata veren model tüm süreci durdurmaz; hata `10_ERRORS_WARNINGS` sayfasına yazılır.
+- Eksik değer, eksik/tekrar eden tarih, çok küçük örneklem, sıfır/negatif log
+  değeri ve MAPE'de sıfır gerçek değer gibi durumlar hata değil **uyarı** üretir.
+- Bilgi kriterleri (AIC/BIC) tüm model ailelerinde aynı ölçeğe getirilir; böylece
+  BIC/AIC ile model seçimi anlamlı olur.

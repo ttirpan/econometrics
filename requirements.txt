@@ -1,0 +1,15 @@
+# Çekirdek paketler (zorunlu)
+pandas
+numpy
+statsmodels
+scikit-learn
+scipy
+matplotlib
+openpyxl
+xlsxwriter
+jupyter
+
+# Opsiyonel paketler (yoksa notebook çökmez, ilgili özellikler devre dışı kalır)
+arch
+pmdarima
+linearmodels

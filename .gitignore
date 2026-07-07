@@ -1,0 +1,12 @@
+# Notebook tarafından üretilen çıktılar
+model_outputs.xlsx
+*_outputs.xlsx
+plots/
+input.xlsx
+
+# Jupyter / Python
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.venv/
+venv/
