@@ -29,7 +29,8 @@ ilgili gelişmiş özellikler devre dışı kalır ve açık bir uyarı verilir.
 1. `ekonometrik_modelleme.ipynb` dosyasını açın.
 2. En üstteki **`CONFIG`** bloğunu kendi verinize göre düzenleyin:
    - `input_file`, `sheet_name`, `date_col`, `target_col`
-   - `frequency`, `sample_start/end`, `forecast_start/end`
+   - `frequency` (`D`/`W`/`M`/`Q`/`A` ya da doğrudan `MS`/`ME`/`QS`/`QE`/`YS`/`YE`),
+     `sample_start/end`, `forecast_start/end`
    - `target_transform` ve `exog_transforms` (level / log / diff / logdiff / pct_change)
    - `models_to_run` ve her model için `model_specs`
    - `forecast_scenarios` (constant / growth / path / linear / shock)
@@ -56,5 +57,13 @@ ilgili gelişmiş özellikler devre dışı kalır ve açık bir uyarı verilir.
 - Hata veren model tüm süreci durdurmaz; hata `10_ERRORS_WARNINGS` sayfasına yazılır.
 - Eksik değer, eksik/tekrar eden tarih, çok küçük örneklem, sıfır/negatif log
   değeri ve MAPE'de sıfır gerçek değer gibi durumlar hata değil **uyarı** üretir.
+- **Frekans/tarih hizalaması anchor-farkındalıdır.** Frekans önce veriden
+  (`pd.infer_freq`) çıkarılır; çıkarılamazsa `M`/`Q`/`A` kısayolu verinin ilk
+  gününe göre dönem-başı (`MS`) veya dönem-sonu (`ME`) olarak hizalanır. Böylece
+  **ay-başı** (ör. `2014-01-01`) veya **ay-sonu** (ör. `2014-01-31`) tarihli veriler
+  sorunsuz çalışır — daha önce ay-başı veri `ME` takvimine sabitlenip tüm değerleri
+  NaN'a düşürdüğü için `prepared_df` boş kalabiliyordu; bu giderildi. Ek güvenlik:
+  üretilen frekans takvimi veriyle yeterince örtüşmezse yeniden örnekleme yapılmaz,
+  orijinal tarih index'i korunur (veri asla NaN'a düşmez).
 - Bilgi kriterleri (AIC/BIC) tüm model ailelerinde aynı ölçeğe getirilir; böylece
   BIC/AIC ile model seçimi anlamlı olur.
