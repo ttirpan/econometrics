@@ -35,6 +35,7 @@ ilgili gelişmiş özellikler devre dışı kalır ve açık bir uyarı verilir.
    - `models_to_run` ve her model için `model_specs`
    - `forecast_scenarios` (constant / growth / path / linear / shock)
    - `test_size`, `selection_metric`, `expected_signs`, `cov_type`
+   - `rolling` (opsiyonel kayan pencere OLS — zamanla değişen katsayılar)
 3. Notebook'u **baştan sona** çalıştırın (Kernel → Restart & Run All).
 
 > `input_file` bulunamazsa notebook otomatik olarak sentetik bir örnek veri seti
@@ -44,12 +45,32 @@ ilgili gelişmiş özellikler devre dışı kalır ve açık bir uyarı verilir.
 
 ## Çıktılar
 
-- **`model_outputs.xlsx`** — 11 sayfalık düzenli Excel raporu:
+- **`model_outputs.xlsx`** — düzenli Excel raporu:
   `00_README`, `01_RAW_DATA`, `02_TRANSFORMED_DATA`, `03_MODEL_COMPARISON`,
   `04_BEST_MODEL_SUMMARY`, `05_COEFFICIENTS_ALL`, `06_DIAGNOSTICS_ALL`,
-  `07_VIF_ALL`, `08_FORECASTS`, `09_SCENARIOS`, `10_ERRORS_WARNINGS`.
+  `07_VIF_ALL`, `08_FORECASTS`, `09_SCENARIOS`, `10_ERRORS_WARNINGS` ve
+  kayan pencere açıksa `11_ROLLING_OLS`.
 - **`plots/`** — hedef seri, gerçek vs fitted, residual, histogram, actual vs
-  forecast ve model karşılaştırma grafikleri (PNG).
+  forecast, model karşılaştırma ve (açıksa) kayan pencere katsayı grafikleri (PNG).
+
+### Kayan pencere (rolling) OLS
+
+`CONFIG["rolling"]` ile açılan **opsiyonel** analiz katmanıdır; ana model
+seçim/forecast akışını etkilemez (`enabled: False` iken hiç çalışmaz). Seçilen
+regresyon spesifikasyonu sabit genişlikte bir pencereyle (`window`) kaydırılarak
+her dönem yeniden tahmin edilir ve **katsayıların zaman içindeki değişimi**
+`11_ROLLING_OLS` sayfasına + ±2 standart hata bantlı grafiğe yazılır.
+
+```python
+CONFIG["rolling"] = {
+    "enabled": True,
+    "model": "OLS",          # OLS / ADL / DISTRIBUTED_LAG spec'lerinden biri
+    "window": 12,            # kayan pencere genişliği (gözlem)
+    "min_nobs": 12,
+    "step": 1,
+    "mode": "coefficients",
+}
+```
 - Notebook içinde **otomatik Türkçe özet yorum** ve tanı testi yorumları.
 
 ## Sağlamlık
