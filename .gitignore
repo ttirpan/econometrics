@@ -2,8 +2,10 @@
 model_outputs.xlsx
 *_outputs.xlsx
 econometric_diagnosis_output.xlsx
+ardl_hetero_audit.xlsx
 plots/
 plots_advanced/
+plots_ardl_audit/
 input.xlsx
 
 # Jupyter / Python

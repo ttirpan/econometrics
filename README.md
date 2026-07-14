@@ -168,3 +168,61 @@ CONFIG["advanced"] = {
 Yorumlar istatistiksel olarak doğru dille üretilir; örneğin p>0,05 için
 *"otokorelasyon reddedilememektedir"* gibi hatalı ifade yerine **"otokorelasyon
 bulunduğuna ilişkin yeterli kanıt yoktur"** kullanılır.
+
+---
+
+# BÖLÜM 3 — ARDL Heteroskedastisite Denetimi (gerçek statsmodels ARDL)
+
+Bölüm 2'deki "advanced" katman ARDL'yi elle kurulan bir OLS tasarımıyla
+yaklaşıklıyordu ve `ardl_order`/`ar_lags`/`dl_lags`/`causal` gibi yapıları
+göstermiyordu. **Bölüm 3**, `CONFIG["ardl_audit"]` ile açılan ve **gerçek
+`statsmodels.tsa.ardl.ARDL`** nesnesi kuran teknik bir denetim katmanıdır. Ana
+akışı etkilemez; `ardl_hetero_audit.xlsx` (11 sayfa) + `plots_ardl_audit/` üretir.
+
+### Neyi denetler
+- **Gerçek ARDL yapısı:** `ardl_order`, `ar_lags`, `dl_lags` (değişken bazlı),
+  `causal`, `trend` açıkça yazdırılır.
+- **Sabit (ortak) etkin örneklemli lag seçimi:** Tüm `(p,q)` adayları **aynı**
+  örneklem üzerinde BIC ile karşılaştırılır (farklı `p` farklı başlangıç gözlemi
+  düşürdüğü için bu şarttır) ve `ardl_select_order` seçimiyle çapraz doğrulanır.
+- **HC3 vs klasik:** Katsayı/fitted/artık **aynı**, yalnızca standart hata ve
+  p-değerleri farklı — bu koşullar PASS/FAIL kontrol tablosunda doğrulanır.
+- **Breusch–Pagan tam ARDL tasarım matrisiyle**, hem **klasik** hem **Koenker**
+  (`robust=True`) biçiminde; LM ve F istatistikleri ayrı raporlanır ve ayrı
+  yorumlanır (küçük/orta örneklemde LM aşırı reddedebilir → önce Koenker-F).
+- **Çoklu-lag ARCH-LM** (1, 3, 6, 12; yetersiz gözlemli lag otomatik atlanır).
+- **Güvenli White:** serbestlik derecesi yetersizse `SKIPPED` olarak raporlanır.
+- **Alternatif spesifikasyonlar** (LogY, Difference, kırılma/pulse dummy'li ARDL,
+  WLS, FGLS) — her biri sonrası tüm testler yeniden çalıştırılır.
+- **Yapısal kırılma / etkili gözlem** (CUSUM, Cook's D, leverage, DFBETAs).
+- **PASS/FAIL/WARNING/SKIPPED kontrol tablosu** ve **net kullanılabilirlik kararı**.
+
+### CONFIG["ardl_audit"] alanları
+```python
+CONFIG["ardl_audit"] = {
+    "enabled": True,
+    "dependent": None,          # None -> target_col
+    "independent": None,        # None -> advanced.independent_variables / base_model exog
+    "max_p": 8, "max_q": 4, "ic": "bic",
+    "trend": "c",               # n/c/ct
+    "causal": False,            # cari dönem x dahil mi
+    "alpha": 0.05,
+    "arch_lags": [1, 3, 6, 12],
+    "manual_break_dates": [],
+    "output_excel_path": "ardl_hetero_audit.xlsx",
+    "make_plots": True, "plot_dir": "plots_ardl_audit",
+}
+```
+
+### Kritik ilke
+HC3 heteroskedastisiteyi **ortadan kaldırmaz**; model artıklarını ve hata
+varyansını değiştirmez, yalnızca katsayı standart hatalarını dayanıklı yapar.
+Bu yüzden HC3 sonrası BP anlamlı kalabilir — bu **başarısızlık değildir**.
+Heteroskedastisiteyi *fiilen* gidermek için dönüşüm, WLS/FGLS, yapısal kırılma
+düzeltmesi veya (ARCH varsa) ARCH/GARCH gerekir.
+
+> **Ek not — private attribute:** ARDL tam tasarım matrisi öncelikle `model._x`
+> (private) üzerinden alınır; sürüm farkına karşı `ar_lags`/`dl_lags`/`trend`'den
+> **manuel yeniden kurulum** fallback'i vardır ve kaynak `ARDL_Structure`
+> sayfasında/çıktıda açıkça belirtilir. `resid`↔`X` satır ve kolon boyutları
+> `assert` ile doğrulanır.
