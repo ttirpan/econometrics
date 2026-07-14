@@ -88,3 +88,83 @@ CONFIG["rolling"] = {
   orijinal tarih index'i korunur (veri asla NaN'a düşmez).
 - Bilgi kriterleri (AIC/BIC) tüm model ailelerinde aynı ölçeğe getirilir; böylece
   BIC/AIC ile model seçimi anlamlı olur.
+
+---
+
+# BÖLÜM 2 — Heteroskedastisite Teşhis ve İleri Ekonometrik Analiz
+
+Notebook'un ikinci bölümü, **heteroskedastisite tespit edildiğinde yalnızca HC3
+uygulamak yerine sorunun kaynağını teşhis eden ve uygun alternatifleri
+karşılaştırmalı sınayan** opsiyonel bir katmandır. `CONFIG["advanced"]["enabled"]`
+ile açılır/kapanır; **ana akışı (Bölüm 1) etkilemez** ve ayrı bir Excel dosyası
+(`econometric_diagnosis_output.xlsx`, 20 sayfa) ile ayrı grafikler (`plots_advanced/`)
+üretir. Kapalıyken hiç çalışmaz.
+
+### Ne yapar
+- **Durağanlık:** Her değişken için ADF + KPSS (düzey ve fark); I(0)/I(1)/I(2)
+  otomatik yorumu. **ARDL'ye I(2) değişken girmemelidir** — I(2) şüphesi uyarı verir.
+- **Teşhis (karar mekanizması):** BP/White/Goldfeld–Quandt + **ARCH-LM** + BG birlikte
+  değerlendirilir ve sorunun kaynağı ayrılır:
+  - *Durum 1/4 (heteroskedastisite, otokorelasyon yok):* HC3 raporlanır **ve** kaynak
+    araştırılır (log/fark dönüşümü, yapısal kırılma kuklaları, WLS, FGLS).
+  - *Durum 2 (otokorelasyon + heteroskedastisite):* **HAC / Newey-West** standart hataları.
+  - *Durum 3 (ARCH-LM anlamlı):* Ortalama denklem korunur, **artıklar üzerinde
+    ARCH/GARCH** (ARCH(1)/GARCH(1,1)/… AIC-BIC ile) kurulur.
+- **Remediation modelleri:** ARDL_Level / LogY / LogLog / Difference / BreakAdjusted,
+  WLS (floor+winsorization'lı birkaç ağırlık şeması), iteratif FGLS.
+- **ARDL bounds testi** (UECM), **kısa/uzun dönem etkiler** (delta yöntemiyle SE/CI),
+  **yapısal kırılma** (manuel + artık sıçraması + Chow + CUSUM), **aykırı/etkili gözlem**
+  (Cook's D, leverage, DFBETAs), **ECM** hata düzeltme katsayısı.
+- **Şeffaf temiz-skor (0–100):** Her bileşen (işaret, I(2), otokorelasyon, stabilite,
+  ECM, bounds, forecast, AIC/BIC, hetero yönetimi, VIF) ayrı kolonda gösterilir.
+
+### CONFIG["advanced"] alanları
+```python
+CONFIG["advanced"] = {
+    "enabled": True,
+    "base_model": "OLS",           # bağımsız değişken + lag kaynağı (OLS/ADL/DISTRIBUTED_LAG)
+    "independent_variables": [],   # boşsa base_model spec'inin exog'u kullanılır
+    "robust_covariance": "HC3",    # nonrobust/HC0/HC1/HC3/HAC
+    "significance_level": 0.05,
+    "max_lag_y": 6, "max_lag_x": 6, "lag_selection_criterion": "BIC",
+    "test_structural_breaks": True, "manual_break_dates": [],  # ör. ["2018-08-01"]
+    "test_wls": True, "test_fgls": True, "test_arch_garch": True,
+    "goldfeld_quandt": True, "make_log_variants": True,
+    "bias_correction": True,       # log->seviye forecast: exp(f + 0.5*sigma^2)
+    "fgls_max_iter": 5,
+    "output_excel_path": "econometric_diagnosis_output.xlsx",
+    "make_plots": True, "plot_dir": "plots_advanced",
+}
+```
+
+### HC3 / HAC / WLS / FGLS / GARCH sonuçları nasıl yorumlanır
+- **HC3:** Yalnızca standart hataları heteroskedastisiteye karşı dayanıklı yapar;
+  **artıkların varyans yapısını değiştirmez.** Bu nedenle HC3 sonrası BP/White'ın
+  anlamlı kalması "düzeltme başarısız" demek **değildir**. Otokorelasyon yokken,
+  varyansı modellemek istemiyorsanız çıkarım için uygundur.
+- **HAC (Newey-West):** Hem otokorelasyon hem heteroskedastisite varken standart
+  hataları ikisine karşı dayanıklı yapar (nokta tahminleri değişmez).
+- **WLS:** Varyans yapısı makul tahmin edilebiliyorsa etkinlik kazandırır; **yanlış
+  ağırlık seçimi sonuçları bozabilir** — bu yüzden birkaç ağırlık şeması denenip
+  BP-sonrası en iyisi seçilir ve rapor bu riski açıkça belirtir.
+- **FGLS:** Yardımcı varyans regresyonuyla ağırlık tahmin edip iteratif çalışır;
+  `Heteroskedasticity` sayfasındaki `BP_p_sonrasi` ile heteroskedastisitenin fiilen
+  azalıp azalmadığı görülür.
+- **GARCH:** Yalnızca **ARCH-LM anlamlıysa** çalışır. Ortalama denklem korunur;
+  artıklardaki koşullu varyans modellenir. Bu durumda **forecast aralıkları sabit
+  değil dönemsel değişen varyansa** göre yorumlanmalıdır.
+
+### Excel sayfaları (econometric_diagnosis_output.xlsx)
+`Config`, `Data_Quality`, `Descriptive_Stats`, `Stationarity_Tests`, `Lag_Search`,
+`Model_Comparison`, `Coefficients`, `Robust_Coefficients`, `Short_Run_Effects`,
+`Long_Run_Effects`, `Bounds_Test`, `Diagnostics`, `Heteroskedasticity`, `ARCH_GARCH`,
+`Structural_Breaks`, `Outliers_Influence`, `Forecast_Scenarios`, `Forecast_Output`,
+`Automatic_Interpretation`, `Errors_Warnings`.
+
+> **Ek paket:** GARCH için `arch` gerekir (`requirements.txt`'e eklendi). Kurulu
+> değilse ARCH/GARCH adımı atlanır, diğer tüm ileri analizler çalışır.
+
+### Otomatik yorum dili
+Yorumlar istatistiksel olarak doğru dille üretilir; örneğin p>0,05 için
+*"otokorelasyon reddedilememektedir"* gibi hatalı ifade yerine **"otokorelasyon
+bulunduğuna ilişkin yeterli kanıt yoktur"** kullanılır.

@@ -1,7 +1,9 @@
 # Notebook tarafından üretilen çıktılar
 model_outputs.xlsx
 *_outputs.xlsx
+econometric_diagnosis_output.xlsx
 plots/
+plots_advanced/
 input.xlsx
 
 # Jupyter / Python
